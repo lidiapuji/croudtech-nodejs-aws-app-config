@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+
+[packages]
+click = "*"
+boto3 = ">=1.16,<2.0"
+bson = "*"
+pyaml = "*"
+pyyaml = "*"
+loguru = "*"
+http-status-codes = "*"
+
+[requires]
+python_version = "3.8"
