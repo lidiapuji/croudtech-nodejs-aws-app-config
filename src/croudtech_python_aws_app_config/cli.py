@@ -27,7 +27,7 @@ def cli(ctx, debug):
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The app name", required=True)
-@click.option("--ssm-prefix", default="/lambda", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The app name")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
     "--ignore-common", default=True, is_flag=True, help="Include shared variables"
@@ -61,7 +61,7 @@ def get_parameters(
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The app name", required=True)
-@click.option("--ssm-prefix", default="/lambda", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The app name")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
     "--encrypted", default=True, help="Do you want this parameter to be encrypted?"
@@ -91,7 +91,7 @@ def put_parameters(
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The app name", required=True)
-@click.option("--ssm-prefix", default="/lambda", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The app name")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
     ssm_config = SsmConfig(
@@ -107,7 +107,7 @@ def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
 
 @cli.command()
 @click.pass_context
-@click.option("--ssm-prefix", default="/lambda", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The app name")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
     "--delete-first",

@@ -41,7 +41,7 @@ class SsmConfig:
         environment_name,
         app_name,
         click=click,
-        ssm_prefix="/lambda",
+        ssm_prefix="/appconfig",
         region="eu-west-2",
         include_common=True,
     ):
@@ -73,6 +73,21 @@ class SsmConfig:
             parameters = {}
         parameters = {**parameters, **self.fetch_parameters(self.ssm_path)}
         return parameters
+
+    def put_parameter(self, path, value, encrypted=False):
+        key = "%s/%s" % (self.ssm_path, path)
+        if encrypted:
+            parameter_type = "SecureString"
+        else:
+            parameter_type = "String"
+        response = self.ssm_client.put_parameter(
+            Name=key,
+            Description="Created by croudtech appconfig helper tool",
+            Value=str(value),
+            Type=parameter_type,
+            Overwrite=True,
+            Tier="Intelligent-Tiering",
+        )
 
     def fetch_parameters(self, path):
         try:
@@ -177,7 +192,7 @@ class SsmConfig:
         for key, value in flattened.items():
             response = self.ssm_client.put_parameter(
                 Name=key,
-                Description="Created by croudtech lambda helper tool",
+                Description="Created by croudtech appconfig helper tool",
                 Value=str(value),
                 Type=parameter_type,
                 Overwrite=True,
