@@ -226,7 +226,7 @@ class SsmConfig:
             parsed_value =  json.dumps(json.loads(value))
         except:
             parsed_value = value
-        return str(parsed_value).strip()
+        return (repr(str(parsed_value).strip()))
 
     def fetch_parameters(self, path, absolute_path=False):
         try:
@@ -352,12 +352,9 @@ class SsmConfigManager:
             environment_path = os.path.join(self.values_path_real, self.values_path_real, environment_name)
             for file in os.listdir(environment_path):
                 file_path = os.path.join(environment_path, file)
-                # file_obj = LazyFile(filename=file_path, mode="r")
                 file_contents, should_close = open_stream(
                     file_path, 'r', atomic=False
                 )
-                # print(dir(file_contents))
-                # exit()
                 matches = re.search('^([^.]+)\.(secret)?', file)
                 encrypted = False
                 if matches:
@@ -373,10 +370,3 @@ class SsmConfigManager:
                     )
 
                     ssm_config.put_values(file_contents, encrypted, delete_first=delete_first)
-
-
-        # for root, subdirs, files in os.walk(self.values_path_real):
-        #     print(root)
-        #     print(subdirs)
-        #     print(files)
-        # pass

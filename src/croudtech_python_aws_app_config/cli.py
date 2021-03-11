@@ -30,18 +30,18 @@ def cli(ctx, debug):
 @click.option("--ssm-prefix", default="/appconfig", help="The app name")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
-    "--ignore-common/--include-common", default=True, is_flag=True, help="Include shared variables"
+    "--include-common/--ignore-common", default=True, is_flag=True, help="Include shared variables"
 )
 @click.option("--output-format", default="json", type=click.Choice(['json', 'yaml', 'environment', 'environment-export']))
 def get_parameters(
-    ctx, environment_name, app_name, ssm_prefix, region, ignore_common, output_format
+    ctx, environment_name, app_name, ssm_prefix, region, include_common, output_format
 ):
     ssm_config = SsmConfig(
         environment_name=environment_name,
         app_name=app_name,
         ssm_prefix=ssm_prefix,
         region=region,
-        include_common=ignore_common,
+        include_common=include_common,
         click=click,
     )
     output = "Invalid output format"
