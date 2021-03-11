@@ -30,9 +30,9 @@ def cli(ctx, debug):
 @click.option("--ssm-prefix", default="/appconfig", help="The app name")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
-    "--ignore-common", default=True, is_flag=True, help="Include shared variables"
+    "--ignore-common/--include-common", default=True, is_flag=True, help="Include shared variables"
 )
-@click.option("--output-format", default="json", type=click.Choice(['json', 'yaml', 'environment']))
+@click.option("--output-format", default="json", type=click.Choice(['json', 'yaml', 'environment', 'environment-export']))
 def get_parameters(
     ctx, environment_name, app_name, ssm_prefix, region, ignore_common, output_format
 ):
@@ -52,6 +52,8 @@ def get_parameters(
         output = dump(ssm_config.params_to_nested_dict(), Dumper=Dumper)
     elif output_format == "environment":
         output = ssm_config.params_to_env()
+    elif output_format == "environment-export":
+        output = ssm_config.params_to_env(export=True)
 
     if isinstance(output, str):
         print(output)

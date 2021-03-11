@@ -9,6 +9,7 @@ from click._compat import open_stream
 import click
 import botocore
 import sys
+
 logger = logging.getLogger()
 logger.setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'INFO')))
 handler = logging.StreamHandler(sys.stdout)
@@ -16,6 +17,10 @@ handler = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+logging.getLogger('boto3').setLevel(logging.CRITICAL)
+logging.getLogger('botocore').setLevel(logging.CRITICAL)
+logging.getLogger('s3transfer').setLevel(logging.CRITICAL)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
 def convert_flatten(d, parent_key="", sep="_"):
     items = []
@@ -34,6 +39,51 @@ class Utils:
         for i in range(0, len(data), chunk_size):
             yield data[i : i + chunk_size]
 
+class SnsConfigTopic:
+    def __init__(self, topic_name):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.topic_name = topic_name
+        self.arn = 'arn:aws:sns:{region}:{account_id}:{topic_name}'.format(
+            region=boto3.session.Session().region_name,
+            account_id=boto3.client('sts').get_caller_identity().get('Account'),
+            topic_name=topic_name
+        )
+        self._initialise_topic()
+
+    @property
+    def client(self):
+        if not hasattr(self, '_topic'):
+            self._topic = boto3.client('sns')
+        return self._topic
+
+    @property
+    def exists(self):
+        topics = sns.get_all_topics()
+        topic_list = topics['ListTopicsResponse']['ListTopicsResult']['Topics']
+        topic_names = [t['TopicArn'].split(':')[5] for t in topic_list]
+
+        if self.name in topic_names:
+            return True
+
+    def _initialise_topic(self):
+        if not self.exists:
+            self._create_topic()
+        self.topic = boto3.resource('sns').Topic(self.arn)
+
+    def _create_topic(self):
+        topic = sns.create_topic(
+            Name='string',
+            Attributes={
+                'string': 'string'
+            },
+            Tags=[
+                {
+                    'Key': 'string',
+                    'Value': 'string'
+                },
+            ]
+        )
+
 
 class SsmConfig:
     def __init__(
@@ -44,6 +94,7 @@ class SsmConfig:
         ssm_prefix="/appconfig",
         region="eu-west-2",
         include_common=True,
+        use_sns=True
     ):
         self.environment_name = environment_name
         self.app_name = app_name
@@ -51,6 +102,15 @@ class SsmConfig:
         self.ssm_prefix = ssm_prefix
         self.region = region
         self.include_common = include_common
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.use_sns = use_sns
+
+    @property
+    def sns_topic(self):
+        if not self.use_sns:
+            return False
+        if hasattr(self, '_sns_topic'):
+            self._sns_topic = SnsConfigTopic(self.ssm_path.replace('/','_'))
 
     @property
     def ssm_client(self):
@@ -74,26 +134,108 @@ class SsmConfig:
         parameters = {**parameters, **self.fetch_parameters(self.ssm_path)}
         return parameters
 
-    def put_parameter(self, path, value, encrypted=False):
-        key = "%s/%s" % (self.ssm_path, path)
+    @property
+    def current_parameters(self):
+        if not hasattr(self, '_current_parameters'):
+            self._current_parameters = self.fetch_parameters(path=self.ssm_path, absolute_path=True)
+        return self._current_parameters
+
+    def has_changed(self, path, value, encrypted):
+        if path not in self.current_parameters:
+            return True
+
+        if str(self.current_parameters[path]) != str(value):
+            return True
+        return False
+
+    def put_parameter(self, path, value, is_abs_path=False, encrypted=False):
+        if not is_abs_path:
+            key = "%s/%s" % (self.ssm_path, path)
+        else:
+            key = path
         if encrypted:
             parameter_type = "SecureString"
         else:
             parameter_type = "String"
-        response = self.ssm_client.put_parameter(
-            Name=key,
-            Description="Created by croudtech appconfig helper tool",
-            Value=str(value),
-            Type=parameter_type,
-            Overwrite=True,
-            Tier="Intelligent-Tiering",
-        )
 
-    def fetch_parameters(self, path):
+        value = self.parse_value(value)
+
+        if not self.has_changed(path, value, encrypted):
+            log_info = {
+                'action': 'No change',
+                'key': key
+            }
+            self.logger.info(json.dumps(log_info, indent=2))
+            return False
+        if len(value) == 0:
+            self.logger.info("Skipping %s Empty Parameters are not allowed" % path)
+            return False
+
+        parameters = {
+            "Name": key,
+            "Description": "Created by croudtech appconfig helper tool",
+            "Value": str(value),
+            "Type": parameter_type,
+            "Overwrite": True,
+            "Tier": "Intelligent-Tiering"
+        }
+        # print(parameters)
+        try:
+            response = self.ssm_client.put_parameter(**parameters)
+            if response['Version'] > 1:
+                adjective = 'Updated'
+            else:
+                adjective = 'Created'
+            log_info = {
+                'action': adjective,
+                'key': key,
+                'encrypted': encrypted,
+                'tier': response['Tier'],
+                'version': response['Version']
+            }
+            if self.sns_topic:
+                self.sns_topic.topic.publish(
+                    TargetArn='string',
+                    Message='string',
+                    Subject='string',
+                    MessageStructure='string',
+                    MessageAttributes={
+                        'string': {
+                            'DataType': 'string',
+                            'StringValue': 'string',
+                            'BinaryValue': b'bytes'
+                        }
+                    },
+                    MessageDeduplicationId='string',
+                    MessageGroupId='string'
+
+                )
+            self.logger.info(json.dumps(log_info, indent=2))
+            return response
+        except botocore.exceptions.ClientError as err:
+            if err.response['Error']['Code'] == 'ValidationException':
+                self.logger.error("Validation failed for %s" % key)
+                self.logger.error(err)
+            return False
+        except Exception as err:
+            self.logger.error(err)
+            return False
+
+    def parse_value(self, value):
+        try:
+            parsed_value =  json.dumps(json.loads(value))
+        except:
+            parsed_value = value
+        return str(parsed_value).strip()
+
+    def fetch_parameters(self, path, absolute_path=False):
         try:
             parameters = {}
             for parameter in self.fetch_paginated_parameters(path):
-                parameter_name = parameter["Name"].replace(path, "")
+                if absolute_path:
+                    parameter_name = parameter['Name']
+                else:
+                    parameter_name = parameter["Name"].replace(path, "")
                 parameters[parameter_name] = parameter["Value"]
                 logger.debug("Fetched parameters from AWS SSM.")
         except botocore.exceptions.ClientError as err:
@@ -142,12 +284,13 @@ class SsmConfig:
 
         return nested
 
-    def params_to_env(self):
+    def params_to_env(self, export=False):
         strings = []
         for parameter, value in self.get_parameters().items():
             env_name = self.parameter_name_to_underscore(parameter)
             os.environ[env_name] = value
-            strings.append("%s=%s" % (env_name, value))
+            prefix = "export " if export else ""
+            strings.append("%s%s=%s" % (prefix, env_name, value))
             logger.debug("Imported %s from SSM to env var %s" % (parameter, env_name))
 
         return "\n".join(strings)
@@ -185,20 +328,8 @@ class SsmConfig:
         if delete_first:
             self.delete_existing()
 
-        if encrypted:
-            parameter_type = "SecureString"
-        else:
-            parameter_type = "String"
         for key, value in flattened.items():
-            response = self.ssm_client.put_parameter(
-                Name=key,
-                Description="Created by croudtech appconfig helper tool",
-                Value=str(value),
-                Type=parameter_type,
-                Overwrite=True,
-                Tier="Intelligent-Tiering",
-            )
-            self.info("Added %s (encrypted=%s)" % (key, encrypted))
+            self.put_parameter(path=key, is_abs_path=True, value=value, encrypted=encrypted)
 
     def info(self, message):
         self.click.echo(message)
