@@ -58,6 +58,34 @@ def get_parameters(
     if isinstance(output, str):
         print(output)
 
+@cli.command()
+@click.pass_context
+@click.option("--environment-name", help="The environment name", required=True)
+@click.option("--app-name", help="The app name", required=True)
+@click.option("--ssm-prefix", default="/appconfig", help="The app name")
+@click.option("--region", default="eu-west-2", help="The AWS region")
+@click.option(
+    "--include-common/--ignore-common", default=True, is_flag=True, help="Include shared variables"
+)
+@click.option("--output-format", default="ecs", type=click.Choice(['ecs']))
+def get_arns(
+    ctx, environment_name, app_name, ssm_prefix, region, include_common, output_format
+):
+    ssm_config = SsmConfig(
+        environment_name=environment_name,
+        app_name=app_name,
+        ssm_prefix=ssm_prefix,
+        region=region,
+        include_common=include_common,
+        click=click,
+    )
+    output = "Invalid output format"
+
+    if output_format == "ecs":
+        output = dump(ssm_config.arns_for_ecs(), indent=2)
+
+    if isinstance(output, str):
+        print(output)
 
 @cli.command()
 @click.pass_context

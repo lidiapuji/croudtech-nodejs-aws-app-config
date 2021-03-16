@@ -153,6 +153,7 @@ class SsmConfig:
             key = "%s/%s" % (self.ssm_path, path)
         else:
             key = path
+
         if encrypted:
             parameter_type = "SecureString"
         else:
@@ -226,7 +227,7 @@ class SsmConfig:
             parsed_value =  json.dumps(json.loads(value))
         except:
             parsed_value = value
-        return (repr(str(parsed_value).strip()))
+        return str(parsed_value).strip()
 
     def fetch_parameters(self, path, absolute_path=False):
         try:
@@ -283,6 +284,22 @@ class SsmConfig:
                     current = current[part]
 
         return nested
+    def arns_for_ecs(self):
+        secrets = []
+        if self.include_common:
+            parameters = self.fetch_paginated_parameters(self.common_ssm_path)
+        else:
+            parameters = []
+        parameters = [*parameters, *self.fetch_paginated_parameters(self.ssm_path)]
+        for parameter in parameters:
+            short_parameter_name = parameter['Name'].replace(self.common_ssm_path, '')
+            short_parameter_name = short_parameter_name.replace(self.ssm_path, '')
+            env_name = self.parameter_name_to_underscore(short_parameter_name)
+            secrets.append({
+                "Name": env_name,
+                "ValueFrom": parameter['ARN']
+            })
+        return secrets
 
     def params_to_env(self, export=False):
         strings = []
