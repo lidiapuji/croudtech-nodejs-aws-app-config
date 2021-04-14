@@ -24,13 +24,14 @@ logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
 def convert_flatten(d, parent_key="", sep="_"):
     items = []
-    for k, v in d.items():
-        new_key = parent_key + sep + k if parent_key else k
+    if isinstance(d, dict):
+        for k, v in d.items():
+            new_key = parent_key + sep + k if parent_key else k
 
-        if isinstance(v, MutableMapping):
-            items.extend(convert_flatten(v, new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
+            if isinstance(v, MutableMapping):
+                items.extend(convert_flatten(v, new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
     return dict(items)
 
 class Utils:
