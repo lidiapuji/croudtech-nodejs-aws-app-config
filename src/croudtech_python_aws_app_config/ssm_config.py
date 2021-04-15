@@ -9,6 +9,8 @@ from click._compat import open_stream
 import click
 import botocore
 import sys
+from .redis_config import RedisConfig
+
 
 logger = logging.getLogger()
 logger.setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'INFO')))
@@ -132,8 +134,30 @@ class SsmConfig:
             parameters = self.fetch_parameters(self.common_ssm_path)
         else:
             parameters = {}
+
         parameters = {**parameters, **self.fetch_parameters(self.ssm_path)}
+        try:
+            parameters = self.parse_parameters(parameters)
+        except:
+            pass
         return parameters
+
+    def parse_parameters(self, parameters):
+        if '/REDIS_DB' not in parameters or parameters['/REDIS_DB'] == 'auto':
+            redis_host = parameters["/REDIS_HOST"] if '/REDIS_HOST' in parameters else False
+            redis_port = parameters["/REDIS_PORT"] if '/REDIS_PORT' in parameters else 6379
+            if redis_host:
+                redis_config_instance = RedisConfig(
+                    redis_host = redis_host,
+                    redis_port = redis_port,
+                    app_name = self.app_name,
+                    environment = self.environment_name
+                )
+                redis_db = redis_config_instance.get_redis_database()
+                parameters['/REDIS_DB'] = redis_db
+                parameters['/REDIS_URL'] = "redis://%s:%s/%s" % (redis_host, redis_port, redis_db)
+        return parameters
+
 
     @property
     def current_parameters(self):
