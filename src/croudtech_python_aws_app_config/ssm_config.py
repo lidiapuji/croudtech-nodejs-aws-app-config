@@ -330,9 +330,9 @@ class SsmConfig:
         strings = []
         for parameter, value in self.get_parameters().items():
             env_name = self.parameter_name_to_underscore(parameter)
-            os.environ[env_name] = value
+            os.environ[env_name] = str(value)
             prefix = "export " if export else ""
-            strings.append("%s%s=%s" % (prefix, env_name, value))
+            strings.append("%s%s=\"%s\"" % (prefix, env_name, str(value).replace("\n", "\\n").replace('"', '\\"')))
             logger.debug("Imported %s from SSM to env var %s" % (parameter, env_name))
 
         return "\n".join(strings)
