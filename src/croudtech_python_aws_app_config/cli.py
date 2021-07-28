@@ -1,4 +1,5 @@
 import json
+from botocore import endpoint
 import click
 import os
 from pathlib import Path
@@ -14,20 +15,24 @@ except ImportError:
 
 @click.group()
 @click.option("--debug/--no-debug", default=False)
+@click.option("--endpoint-url", default=os.getenv('AWS_ENDPOINT_URL', None))
 @click.pass_context
-def cli(ctx, debug):
+def cli(ctx, debug, endpoint_url):
     # ensure that ctx.obj exists and is a dict (in case `cli()` is called
     # by means other than the `if` block below)
     ctx.ensure_object(dict)
 
     ctx.obj["DEBUG"] = debug
+    ctx.obj["AWS_ENDPOINT_URL"] = endpoint_url
+    if ctx.obj["AWS_ENDPOINT_URL"]:
+        click.echo(click.style('Using aws endpoint url %s' % ctx.obj["AWS_ENDPOINT_URL"], blink=True, bold=True))
 
 
 @cli.command()
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The app name", required=True)
-@click.option("--ssm-prefix", default="/appconfig", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The ssm path prefix")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
     "--include-common/--ignore-common", default=True, is_flag=True, help="Include shared variables"
@@ -43,6 +48,7 @@ def get_parameters(
         region=region,
         include_common=include_common,
         click=click,
+        endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
     )
     output = "Invalid output format"
 
@@ -62,7 +68,7 @@ def get_parameters(
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The app name", required=True)
-@click.option("--ssm-prefix", default="/appconfig", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The ssm path prefix")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
     "--include-common/--ignore-common", default=True, is_flag=True, help="Include shared variables"
@@ -78,6 +84,7 @@ def get_arns(
         region=region,
         include_common=include_common,
         click=click,
+        endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
     )
     output = "Invalid output format"
 
@@ -91,7 +98,7 @@ def get_arns(
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The app name", required=True)
-@click.option("--ssm-prefix", default="/appconfig", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The ssm path prefix")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
     "--encrypted", default=True, help="Do you want this parameter to be encrypted?"
@@ -112,6 +119,7 @@ def put_parameters(
         ssm_prefix=ssm_prefix,
         region=region,
         click=click,
+        endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
     )
 
     ssm_config.put_values(input, encrypted, delete_first=delete_first)
@@ -121,7 +129,7 @@ def put_parameters(
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The app name", required=True)
-@click.option("--ssm-prefix", default="/appconfig", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The ssm path prefix")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
     ssm_config = SsmConfig(
@@ -130,6 +138,7 @@ def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
         ssm_prefix=ssm_prefix,
         region=region,
         click=click,
+        endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
     )
 
     ssm_config.delete_existing()
@@ -137,7 +146,7 @@ def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
 
 @cli.command()
 @click.pass_context
-@click.option("--ssm-prefix", default="/appconfig", help="The app name")
+@click.option("--ssm-prefix", default="/appconfig", help="The ssm path prefix")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
     "--delete-first",
@@ -148,7 +157,11 @@ def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
 @click.argument("values_path")
 def put_parameters_recursive(ctx, ssm_prefix, region, delete_first, values_path):
     ssm_config_manager = SsmConfigManager(
-        ssm_prefix=ssm_prefix, region=region, click=click, values_path=values_path
+        ssm_prefix=ssm_prefix, 
+        region=region, 
+        click=click, 
+        values_path=values_path, 
+        endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
     )
 
     ssm_config_manager.put_parameters_recursive(delete_first=delete_first)

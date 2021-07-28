@@ -1,6 +1,7 @@
 import boto3
 import json
 import os
+from botocore import endpoint
 import yaml
 from collections import MutableMapping
 import logging
@@ -42,52 +43,6 @@ class Utils:
         for i in range(0, len(data), chunk_size):
             yield data[i : i + chunk_size]
 
-class SnsConfigTopic:
-    def __init__(self, topic_name):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.topic_name = topic_name
-        self.arn = 'arn:aws:sns:{region}:{account_id}:{topic_name}'.format(
-            region=boto3.session.Session().region_name,
-            account_id=boto3.client('sts').get_caller_identity().get('Account'),
-            topic_name=topic_name
-        )
-        self._initialise_topic()
-
-    @property
-    def client(self):
-        if not hasattr(self, '_topic'):
-            self._topic = boto3.client('sns')
-        return self._topic
-
-    @property
-    def exists(self):
-        topics = sns.get_all_topics()
-        topic_list = topics['ListTopicsResponse']['ListTopicsResult']['Topics']
-        topic_names = [t['TopicArn'].split(':')[5] for t in topic_list]
-
-        if self.name in topic_names:
-            return True
-
-    def _initialise_topic(self):
-        if not self.exists:
-            self._create_topic()
-        self.topic = boto3.resource('sns').Topic(self.arn)
-
-    def _create_topic(self):
-        topic = sns.create_topic(
-            Name='string',
-            Attributes={
-                'string': 'string'
-            },
-            Tags=[
-                {
-                    'Key': 'string',
-                    'Value': 'string'
-                },
-            ]
-        )
-
-
 class SsmConfig:
     def __init__(
         self,
@@ -97,7 +52,8 @@ class SsmConfig:
         ssm_prefix="/appconfig",
         region="eu-west-2",
         include_common=True,
-        use_sns=True
+        use_sns=True,
+        endpoint_url=os.getenv("AWS_ENDPOINT_URL", None)
     ):
         self.environment_name = environment_name
         self.app_name = app_name
@@ -107,18 +63,12 @@ class SsmConfig:
         self.include_common = include_common
         self.logger = logging.getLogger(self.__class__.__name__)
         self.use_sns = use_sns
-
-    @property
-    def sns_topic(self):
-        if not self.use_sns:
-            return False
-        if hasattr(self, '_sns_topic'):
-            self._sns_topic = SnsConfigTopic(self.ssm_path.replace('/','_'))
+        self.endpoint_url = endpoint_url
 
     @property
     def ssm_client(self):
         if not hasattr(self, "_ssm_client"):
-            self._ssm_client = boto3.client("ssm", region_name=self.region)
+            self._ssm_client = boto3.client("ssm", region_name=self.region, endpoint_url=self.endpoint_url)
         return self._ssm_client
 
     @property
@@ -219,23 +169,7 @@ class SsmConfig:
                 'tier': response['Tier'],
                 'version': response['Version']
             }
-            if self.sns_topic:
-                self.sns_topic.topic.publish(
-                    TargetArn='string',
-                    Message='string',
-                    Subject='string',
-                    MessageStructure='string',
-                    MessageAttributes={
-                        'string': {
-                            'DataType': 'string',
-                            'StringValue': 'string',
-                            'BinaryValue': b'bytes'
-                        }
-                    },
-                    MessageDeduplicationId='string',
-                    MessageGroupId='string'
-
-                )
+            
             self.logger.info(json.dumps(log_info, indent=2))
             return response
         except botocore.exceptions.ClientError as err:
@@ -378,11 +312,12 @@ class SsmConfig:
 
 
 class SsmConfigManager:
-    def __init__(self, ssm_prefix, region, click, values_path):
+    def __init__(self, ssm_prefix, region, click, values_path, endpoint_url=os.getenv('AWS_ENDPOINT_URL', None)):
         self.ssm_prefix = ssm_prefix
         self.region = region
         self.click = click
         self.values_path = values_path
+        self.endpoint_url = endpoint_url
 
     @property
     def values_path_real(self):
@@ -409,6 +344,7 @@ class SsmConfigManager:
                         ssm_prefix=self.ssm_prefix,
                         region=self.region,
                         click=self.click,
+                        endpoint_url=self.endpoint_url
                     )
 
                     ssm_config.put_values(file_contents, encrypted, delete_first=delete_first)
