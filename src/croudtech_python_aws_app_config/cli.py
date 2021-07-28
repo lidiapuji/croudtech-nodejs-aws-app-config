@@ -14,15 +14,13 @@ except ImportError:
 
 
 @click.group()
-@click.option("--debug/--no-debug", default=False)
-@click.option("--endpoint-url", default=os.getenv('AWS_ENDPOINT_URL', None))
+@click.option("--endpoint-url", default=os.getenv('AWS_ENDPOINT_URL', None), help="The AWS API endpoint URL")
 @click.pass_context
 def cli(ctx, debug, endpoint_url):
     # ensure that ctx.obj exists and is a dict (in case `cli()` is called
     # by means other than the `if` block below)
     ctx.ensure_object(dict)
 
-    ctx.obj["DEBUG"] = debug
     ctx.obj["AWS_ENDPOINT_URL"] = endpoint_url
     if ctx.obj["AWS_ENDPOINT_URL"]:
         click.echo(click.style('Using aws endpoint url %s' % ctx.obj["AWS_ENDPOINT_URL"], blink=True, bold=True))
