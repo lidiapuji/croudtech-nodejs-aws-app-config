@@ -30,6 +30,8 @@ Commands:
   put-parameters-recursive
 ```
 
+--endpoint-url specified the AWS API endpoint URL used. This should be used if using localstack or a similar aws mock service. You can also set the `AWS_ENDPOINT_URL` env var to enable this feature.
+
 ### Sub Commands
 
 #### delete-parameters
