@@ -14,7 +14,11 @@ except ImportError:
 
 
 @click.group()
-@click.option("--endpoint-url", default=os.getenv('AWS_ENDPOINT_URL', None), help="The AWS API endpoint URL")
+@click.option(
+    "--endpoint-url",
+    default=os.getenv("AWS_ENDPOINT_URL", None),
+    help="The AWS API endpoint URL",
+)
 @click.pass_context
 def cli(ctx, debug, endpoint_url):
     # ensure that ctx.obj exists and is a dict (in case `cli()` is called
@@ -23,7 +27,13 @@ def cli(ctx, debug, endpoint_url):
 
     ctx.obj["AWS_ENDPOINT_URL"] = endpoint_url
     if ctx.obj["AWS_ENDPOINT_URL"]:
-        click.echo(click.style('Using aws endpoint url %s' % ctx.obj["AWS_ENDPOINT_URL"], blink=True, bold=True))
+        click.echo(
+            click.style(
+                "Using aws endpoint url %s" % ctx.obj["AWS_ENDPOINT_URL"],
+                blink=True,
+                bold=True,
+            )
+        )
 
 
 @cli.command()
@@ -33,9 +43,16 @@ def cli(ctx, debug, endpoint_url):
 @click.option("--ssm-prefix", default="/appconfig", help="The ssm path prefix")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
-    "--include-common/--ignore-common", default=True, is_flag=True, help="Include shared variables"
+    "--include-common/--ignore-common",
+    default=True,
+    is_flag=True,
+    help="Include shared variables",
 )
-@click.option("--output-format", default="json", type=click.Choice(['json', 'yaml', 'environment', 'environment-export']))
+@click.option(
+    "--output-format",
+    default="json",
+    type=click.Choice(["json", "yaml", "environment", "environment-export"]),
+)
 def get_parameters(
     ctx, environment_name, app_name, ssm_prefix, region, include_common, output_format
 ):
@@ -62,6 +79,7 @@ def get_parameters(
     if isinstance(output, str):
         print(output)
 
+
 @cli.command()
 @click.pass_context
 @click.option("--environment-name", help="The environment name", required=True)
@@ -69,9 +87,12 @@ def get_parameters(
 @click.option("--ssm-prefix", default="/appconfig", help="The ssm path prefix")
 @click.option("--region", default="eu-west-2", help="The AWS region")
 @click.option(
-    "--include-common/--ignore-common", default=True, is_flag=True, help="Include shared variables"
+    "--include-common/--ignore-common",
+    default=True,
+    is_flag=True,
+    help="Include shared variables",
 )
-@click.option("--output-format", default="ecs", type=click.Choice(['ecs']))
+@click.option("--output-format", default="ecs", type=click.Choice(["ecs"]))
 def get_arns(
     ctx, environment_name, app_name, ssm_prefix, region, include_common, output_format
 ):
@@ -91,6 +112,7 @@ def get_arns(
 
     if isinstance(output, str):
         print(output)
+
 
 @cli.command()
 @click.pass_context
@@ -155,10 +177,10 @@ def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
 @click.argument("values_path")
 def put_parameters_recursive(ctx, ssm_prefix, region, delete_first, values_path):
     ssm_config_manager = SsmConfigManager(
-        ssm_prefix=ssm_prefix, 
-        region=region, 
-        click=click, 
-        values_path=values_path, 
+        ssm_prefix=ssm_prefix,
+        region=region,
+        click=click,
+        values_path=values_path,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
     )
 

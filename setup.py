@@ -18,7 +18,7 @@ except VersionConflict:
     print("Error: version of setuptools is too old (<38.3)!")
     sys.exit(1)
 
-with open('requirements.txt') as f:
+with open("requirements.txt") as f:
     required = f.read().splitlines()
 
 if __name__ == "__main__":
@@ -30,7 +30,5 @@ if __name__ == "__main__":
                 "croudtech-app-config=croudtech_python_aws_app_config.cli:cli"
             ],
         },
-        packages=[
-            "croudtech_python_aws_app_config"
-        ]
+        packages=["croudtech_python_aws_app_config"],
     )

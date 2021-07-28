@@ -14,16 +14,17 @@ from .redis_config import RedisConfig
 
 
 logger = logging.getLogger()
-logger.setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'INFO')))
+logger.setLevel(getattr(logging, os.getenv("LOG_LEVEL", "INFO")))
 handler = logging.StreamHandler(sys.stdout)
 # handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logging.getLogger('boto3').setLevel(logging.CRITICAL)
-logging.getLogger('botocore').setLevel(logging.CRITICAL)
-logging.getLogger('s3transfer').setLevel(logging.CRITICAL)
-logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+logging.getLogger("boto3").setLevel(logging.CRITICAL)
+logging.getLogger("botocore").setLevel(logging.CRITICAL)
+logging.getLogger("s3transfer").setLevel(logging.CRITICAL)
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+
 
 def convert_flatten(d, parent_key="", sep="_"):
     items = []
@@ -37,11 +38,13 @@ def convert_flatten(d, parent_key="", sep="_"):
                 items.append((new_key, v))
     return dict(items)
 
+
 class Utils:
     @staticmethod
     def chunk_list(data, chunk_size):
         for i in range(0, len(data), chunk_size):
             yield data[i : i + chunk_size]
+
 
 class SsmConfig:
     def __init__(
@@ -53,7 +56,7 @@ class SsmConfig:
         region="eu-west-2",
         include_common=True,
         use_sns=True,
-        endpoint_url=os.getenv("AWS_ENDPOINT_URL", None)
+        endpoint_url=os.getenv("AWS_ENDPOINT_URL", None),
     ):
         self.environment_name = environment_name
         self.app_name = app_name
@@ -68,7 +71,9 @@ class SsmConfig:
     @property
     def ssm_client(self):
         if not hasattr(self, "_ssm_client"):
-            self._ssm_client = boto3.client("ssm", region_name=self.region, endpoint_url=self.endpoint_url)
+            self._ssm_client = boto3.client(
+                "ssm", region_name=self.region, endpoint_url=self.endpoint_url
+            )
         return self._ssm_client
 
     @property
@@ -93,26 +98,35 @@ class SsmConfig:
         return parameters
 
     def parse_parameters(self, parameters):
-        if '/REDIS_DB' not in parameters or parameters['/REDIS_DB'] == 'auto':
-            redis_host = parameters["/REDIS_HOST"] if '/REDIS_HOST' in parameters else False
-            redis_port = parameters["/REDIS_PORT"] if '/REDIS_PORT' in parameters else 6379
+        if "/REDIS_DB" not in parameters or parameters["/REDIS_DB"] == "auto":
+            redis_host = (
+                parameters["/REDIS_HOST"] if "/REDIS_HOST" in parameters else False
+            )
+            redis_port = (
+                parameters["/REDIS_PORT"] if "/REDIS_PORT" in parameters else 6379
+            )
             if redis_host:
                 redis_config_instance = RedisConfig(
-                    redis_host = redis_host,
-                    redis_port = redis_port,
-                    app_name = self.app_name,
-                    environment = self.environment_name
+                    redis_host=redis_host,
+                    redis_port=redis_port,
+                    app_name=self.app_name,
+                    environment=self.environment_name,
                 )
                 redis_db = redis_config_instance.get_redis_database()
-                parameters['/REDIS_DB'] = redis_db
-                parameters['/REDIS_URL'] = "redis://%s:%s/%s" % (redis_host, redis_port, redis_db)
+                parameters["/REDIS_DB"] = redis_db
+                parameters["/REDIS_URL"] = "redis://%s:%s/%s" % (
+                    redis_host,
+                    redis_port,
+                    redis_db,
+                )
         return parameters
-
 
     @property
     def current_parameters(self):
-        if not hasattr(self, '_current_parameters'):
-            self._current_parameters = self.fetch_parameters(path=self.ssm_path, absolute_path=True)
+        if not hasattr(self, "_current_parameters"):
+            self._current_parameters = self.fetch_parameters(
+                path=self.ssm_path, absolute_path=True
+            )
         return self._current_parameters
 
     def has_changed(self, path, value, encrypted):
@@ -137,10 +151,7 @@ class SsmConfig:
         value = self.parse_value(value)
 
         if not self.has_changed(path, value, encrypted):
-            log_info = {
-                'action': 'No change',
-                'key': key
-            }
+            log_info = {"action": "No change", "key": key}
             self.logger.info(json.dumps(log_info, indent=2))
             return False
         if len(value) == 0:
@@ -153,27 +164,27 @@ class SsmConfig:
             "Value": str(value),
             "Type": parameter_type,
             "Overwrite": True,
-            "Tier": "Intelligent-Tiering"
+            "Tier": "Intelligent-Tiering",
         }
         # print(parameters)
         try:
             response = self.ssm_client.put_parameter(**parameters)
-            if response['Version'] > 1:
-                adjective = 'Updated'
+            if response["Version"] > 1:
+                adjective = "Updated"
             else:
-                adjective = 'Created'
+                adjective = "Created"
             log_info = {
-                'action': adjective,
-                'key': key,
-                'encrypted': encrypted,
-                'tier': response['Tier'],
-                'version': response['Version']
+                "action": adjective,
+                "key": key,
+                "encrypted": encrypted,
+                "tier": response["Tier"],
+                "version": response["Version"],
             }
-            
+
             self.logger.info(json.dumps(log_info, indent=2))
             return response
         except botocore.exceptions.ClientError as err:
-            if err.response['Error']['Code'] == 'ValidationException':
+            if err.response["Error"]["Code"] == "ValidationException":
                 self.logger.error("Validation failed for %s" % key)
                 self.logger.error(err)
             return False
@@ -183,7 +194,7 @@ class SsmConfig:
 
     def parse_value(self, value):
         try:
-            parsed_value =  json.dumps(json.loads(value))
+            parsed_value = json.dumps(json.loads(value))
         except:
             parsed_value = value
         return str(parsed_value).strip()
@@ -193,7 +204,7 @@ class SsmConfig:
             parameters = {}
             for parameter in self.fetch_paginated_parameters(path):
                 if absolute_path:
-                    parameter_name = parameter['Name']
+                    parameter_name = parameter["Name"]
                 else:
                     parameter_name = parameter["Name"].replace(path, "")
                 parameters[parameter_name] = parameter["Value"]
@@ -211,12 +222,10 @@ class SsmConfig:
         fetch_next_page = True
         api_parameters = {"Path": path, "Recursive": True, "WithDecryption": True}
         while fetch_next_page:
-            response = self.ssm_client.get_parameters_by_path(
-                **api_parameters
-            )
+            response = self.ssm_client.get_parameters_by_path(**api_parameters)
 
             if "Parameters" in response:
-                parameters = parameters + response['Parameters']
+                parameters = parameters + response["Parameters"]
             if "NextToken" in response:
                 api_parameters["NextToken"] = response["NextToken"]
                 fetch_next_page = True
@@ -243,6 +252,7 @@ class SsmConfig:
                     current = current[part]
 
         return nested
+
     def arns_for_ecs(self):
         secrets = []
         if self.include_common:
@@ -251,13 +261,10 @@ class SsmConfig:
             parameters = []
         parameters = [*parameters, *self.fetch_paginated_parameters(self.ssm_path)]
         for parameter in parameters:
-            short_parameter_name = parameter['Name'].replace(self.common_ssm_path, '')
-            short_parameter_name = short_parameter_name.replace(self.ssm_path, '')
+            short_parameter_name = parameter["Name"].replace(self.common_ssm_path, "")
+            short_parameter_name = short_parameter_name.replace(self.ssm_path, "")
             env_name = self.parameter_name_to_underscore(short_parameter_name)
-            secrets.append({
-                "Name": env_name,
-                "ValueFrom": parameter['ARN']
-            })
+            secrets.append({"Name": env_name, "ValueFrom": parameter["ARN"]})
         return secrets
 
     def params_to_env(self, export=False):
@@ -266,7 +273,14 @@ class SsmConfig:
             env_name = self.parameter_name_to_underscore(parameter)
             os.environ[env_name] = str(value)
             prefix = "export " if export else ""
-            strings.append("%s%s=\"%s\"" % (prefix, env_name, str(value).replace("\n", "\\n").replace('"', '\\"')))
+            strings.append(
+                '%s%s="%s"'
+                % (
+                    prefix,
+                    env_name,
+                    str(value).replace("\n", "\\n").replace('"', '\\"'),
+                )
+            )
             logger.debug("Imported %s from SSM to env var %s" % (parameter, env_name))
 
         return "\n".join(strings)
@@ -291,7 +305,7 @@ class SsmConfig:
         filename, file_extension = os.path.splitext(input.name)
         contents = input.read()
         if not isinstance(contents, str):
-            contents = contents.decode('utf-8')
+            contents = contents.decode("utf-8")
 
         if file_extension == ".yaml":
             data = yaml.load(contents, Loader=yaml.FullLoader)
@@ -305,14 +319,23 @@ class SsmConfig:
             self.delete_existing()
 
         for key, value in flattened.items():
-            self.put_parameter(path=key, is_abs_path=True, value=value, encrypted=encrypted)
+            self.put_parameter(
+                path=key, is_abs_path=True, value=value, encrypted=encrypted
+            )
 
     def info(self, message):
         self.click.echo(message)
 
 
 class SsmConfigManager:
-    def __init__(self, ssm_prefix, region, click, values_path, endpoint_url=os.getenv('AWS_ENDPOINT_URL', None)):
+    def __init__(
+        self,
+        ssm_prefix,
+        region,
+        click,
+        values_path,
+        endpoint_url=os.getenv("AWS_ENDPOINT_URL", None),
+    ):
         self.ssm_prefix = ssm_prefix
         self.region = region
         self.click = click
@@ -326,17 +349,17 @@ class SsmConfigManager:
     def put_parameters_recursive(self, delete_first):
         environment_paths = os.listdir(self.values_path_real)
         for environment_name in environment_paths:
-            environment_path = os.path.join(self.values_path_real, self.values_path_real, environment_name)
+            environment_path = os.path.join(
+                self.values_path_real, self.values_path_real, environment_name
+            )
             for file in os.listdir(environment_path):
                 file_path = os.path.join(environment_path, file)
-                file_contents, should_close = open_stream(
-                    file_path, 'r', atomic=False
-                )
-                matches = re.search('^([^.]+)\.(secret)?', file)
+                file_contents, should_close = open_stream(file_path, "r", atomic=False)
+                matches = re.search("^([^.]+)\.(secret)?", file)
                 encrypted = False
                 if matches:
-                    if matches.group(2) == 'secret':
-                        encrypted=True
+                    if matches.group(2) == "secret":
+                        encrypted = True
                     app_name = matches.group(1)
                     ssm_config = SsmConfig(
                         environment_name=environment_name,
@@ -344,7 +367,9 @@ class SsmConfigManager:
                         ssm_prefix=self.ssm_prefix,
                         region=self.region,
                         click=self.click,
-                        endpoint_url=self.endpoint_url
+                        endpoint_url=self.endpoint_url,
                     )
 
-                    ssm_config.put_values(file_contents, encrypted, delete_first=delete_first)
+                    ssm_config.put_values(
+                        file_contents, encrypted, delete_first=delete_first
+                    )
