@@ -20,7 +20,7 @@ except ImportError:
     help="The AWS API endpoint URL",
 )
 @click.pass_context
-def cli(ctx, debug, endpoint_url):
+def cli(ctx, endpoint_url):
     # ensure that ctx.obj exists and is a dict (in case `cli()` is called
     # by means other than the `if` block below)
     ctx.ensure_object(dict)
