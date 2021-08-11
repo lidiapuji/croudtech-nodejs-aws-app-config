@@ -19,8 +19,13 @@ except ImportError:
     default=os.getenv("AWS_ENDPOINT_URL", None),
     help="The AWS API endpoint URL",
 )
+@click.option(
+    "--put-metrics",
+    default=True,
+    help="Use Cloudwatch Metrics to track usage",
+)
 @click.pass_context
-def cli(ctx, endpoint_url):
+def cli(ctx, endpoint_url, put_metrics):
     # ensure that ctx.obj exists and is a dict (in case `cli()` is called
     # by means other than the `if` block below)
     ctx.ensure_object(dict)
@@ -34,6 +39,8 @@ def cli(ctx, endpoint_url):
                 bold=True,
             )
         )
+
+    ctx.obj["PUT_METRICS"] = put_metrics
 
 
 @cli.command()
@@ -64,6 +71,7 @@ def get_parameters(
         include_common=include_common,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
+        put_metrics=ctx.obj["PUT_METRICS"]
     )
     output = "Invalid output format"
 
@@ -104,6 +112,7 @@ def get_arns(
         include_common=include_common,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
+        put_metrics=ctx.obj["PUT_METRICS"]
     )
     output = "Invalid output format"
 
@@ -140,6 +149,7 @@ def put_parameters(
         region=region,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
+        put_metrics=ctx.obj["PUT_METRICS"]
     )
 
     ssm_config.put_values(input, encrypted, delete_first=delete_first)
@@ -159,6 +169,7 @@ def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
         region=region,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
+        put_metrics=ctx.obj["PUT_METRICS"]
     )
 
     ssm_config.delete_existing()
@@ -182,6 +193,7 @@ def put_parameters_recursive(ctx, ssm_prefix, region, delete_first, values_path)
         click=click,
         values_path=values_path,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
+        put_metrics=ctx.obj["PUT_METRICS"]
     )
 
     ssm_config_manager.put_parameters_recursive(delete_first=delete_first)

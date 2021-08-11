@@ -57,6 +57,7 @@ class SsmConfig:
         include_common=True,
         use_sns=True,
         endpoint_url=os.getenv("AWS_ENDPOINT_URL", None),
+        put_metrics=True
     ):
         self.environment_name = environment_name
         self.app_name = app_name
@@ -67,6 +68,7 @@ class SsmConfig:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.use_sns = use_sns
         self.endpoint_url = endpoint_url
+        self.put_metrics = put_metrics
 
     @property
     def ssm_client(self):
@@ -111,6 +113,7 @@ class SsmConfig:
                     redis_port=redis_port,
                     app_name=self.app_name,
                     environment=self.environment_name,
+                    put_metrics=self.put_metrics
                 )
                 redis_db = redis_config_instance.get_redis_database()
                 parameters["/REDIS_DB"] = redis_db

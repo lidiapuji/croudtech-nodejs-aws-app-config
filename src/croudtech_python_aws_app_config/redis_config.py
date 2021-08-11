@@ -1,5 +1,6 @@
 import redis
 import json
+from .metrics import Metrics
 
 
 class RedisConfig:
@@ -7,11 +8,13 @@ class RedisConfig:
     _config_db = 15
     _allocated_dbs_key = "allocated_dbs"
 
-    def __init__(self, redis_host, redis_port, app_name, environment):
+    def __init__(self, redis_host, redis_port, app_name, environment, put_metrics=True):
         self._redis_host = redis_host
         self._redis_port = redis_port
         self._app_name = app_name
         self._environment = environment
+        self.put_metrics = put_metrics
+        self.metrics = Metrics()
 
     @property
     def strict_redis(self):
@@ -45,10 +48,16 @@ class RedisConfig:
     def get_redis_database(self):
         allocated_dbs = self.redis_db_allocations
         if self.db_key not in allocated_dbs:
-            return self.allocate_db()
+            allocated_db = self.allocate_db()
         else:
-            return allocated_dbs[self.db_key]
-
+            allocated_db = allocated_dbs[self.db_key]
+        if (self.put_metrics):
+            self.metrics.put_redis_db_metric(
+                app_key=self.db_key,
+                redis_db=allocated_db,
+                redis_host=self._redis_host,
+                environment_name=self._environment,
+            )
         return allocated_db
 
     def allocate_db(self):
@@ -57,6 +66,7 @@ class RedisConfig:
         db_config = self.redis_db_allocations
         db_config[self.db_key] = db
         self._redis_config.set(self._allocated_dbs_key, json.dumps(db_config))
+        
         return db
 
     def get_redis_allocated_db(self, db):
