@@ -1,0 +1,36 @@
+{
+  "name": "croudtech-nodejs-aws-app-config",
+  "version": "1.0.4",
+  "description": "Application config via AWS SSM Parameters",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/CroudTech/croudtech-python-aws-app-config.git"
+  },
+  "keywords": [
+    "AWS",
+    "SSM",
+    "Application",
+    "Config",
+    "Lambda"
+  ],
+  "author": "Jim Robinson <jscrobinson@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CroudTech/croudtech-python-aws-app-config/issues"
+  },
+  "homepage": "https://github.com/CroudTech/croudtech-python-aws-app-config#readme",
+  "dependencies": {
+    "@aws-sdk/client-ssm": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "10.14.2"
+  }
+}
