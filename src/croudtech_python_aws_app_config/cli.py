@@ -71,7 +71,7 @@ def get_parameters(
         include_common=include_common,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
-        put_metrics=ctx.obj["PUT_METRICS"]
+        put_metrics=ctx.obj["PUT_METRICS"],
     )
     output = "Invalid output format"
 
@@ -112,7 +112,7 @@ def get_arns(
         include_common=include_common,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
-        put_metrics=ctx.obj["PUT_METRICS"]
+        put_metrics=ctx.obj["PUT_METRICS"],
     )
     output = "Invalid output format"
 
@@ -149,7 +149,7 @@ def put_parameters(
         region=region,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
-        put_metrics=ctx.obj["PUT_METRICS"]
+        put_metrics=ctx.obj["PUT_METRICS"],
     )
 
     ssm_config.put_values(input, encrypted, delete_first=delete_first)
@@ -169,7 +169,7 @@ def delete_parameters(ctx, environment_name, app_name, ssm_prefix, region):
         region=region,
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
-        put_metrics=ctx.obj["PUT_METRICS"]
+        put_metrics=ctx.obj["PUT_METRICS"],
     )
 
     ssm_config.delete_existing()
@@ -193,7 +193,6 @@ def put_parameters_recursive(ctx, ssm_prefix, region, delete_first, values_path)
         click=click,
         values_path=values_path,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
-        put_metrics=ctx.obj["PUT_METRICS"]
     )
 
     ssm_config_manager.put_parameters_recursive(delete_first=delete_first)

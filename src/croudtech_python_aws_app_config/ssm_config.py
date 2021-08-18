@@ -57,7 +57,7 @@ class SsmConfig:
         include_common=True,
         use_sns=True,
         endpoint_url=os.getenv("AWS_ENDPOINT_URL", None),
-        put_metrics=True
+        put_metrics=True,
     ):
         self.environment_name = environment_name
         self.app_name = app_name
@@ -113,7 +113,7 @@ class SsmConfig:
                     redis_port=redis_port,
                     app_name=self.app_name,
                     environment=self.environment_name,
-                    put_metrics=self.put_metrics
+                    put_metrics=self.put_metrics,
                 )
                 redis_db = redis_config_instance.get_redis_database()
                 parameters["/REDIS_DB"] = redis_db

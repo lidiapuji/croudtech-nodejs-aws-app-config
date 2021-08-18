@@ -51,7 +51,7 @@ class RedisConfig:
             allocated_db = self.allocate_db()
         else:
             allocated_db = allocated_dbs[self.db_key]
-        if (self.put_metrics):
+        if self.put_metrics:
             self.metrics.put_redis_db_metric(
                 app_key=self.db_key,
                 redis_db=allocated_db,
@@ -66,7 +66,7 @@ class RedisConfig:
         db_config = self.redis_db_allocations
         db_config[self.db_key] = db
         self._redis_config.set(self._allocated_dbs_key, json.dumps(db_config))
-        
+
         return db
 
     def get_redis_allocated_db(self, db):

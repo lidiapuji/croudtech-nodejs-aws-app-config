@@ -1,6 +1,6 @@
 {
   "name": "croudtech-nodejs-aws-app-config",
-  "version": "1.0.4",
+  "version": "2.0.0",
   "description": "Application config via AWS SSM Parameters",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
