@@ -58,6 +58,7 @@ class SsmConfig:
         use_sns=True,
         endpoint_url=os.getenv("AWS_ENDPOINT_URL", None),
         put_metrics=True,
+        parse_redis=True
     ):
         self.environment_name = environment_name
         self.app_name = app_name
@@ -69,6 +70,7 @@ class SsmConfig:
         self.use_sns = use_sns
         self.endpoint_url = endpoint_url
         self.put_metrics = put_metrics
+        self.parse_redis = parse_redis
 
     @property
     def ssm_client(self):
@@ -100,7 +102,7 @@ class SsmConfig:
         return parameters
 
     def parse_parameters(self, parameters):
-        if "/REDIS_DB" not in parameters or parameters["/REDIS_DB"] == "auto":
+        if self.parse_redis and ("/REDIS_DB" not in parameters or parameters["/REDIS_DB"] == "auto"):
             redis_host = (
                 parameters["/REDIS_HOST"] if "/REDIS_HOST" in parameters else False
             )
@@ -210,8 +212,7 @@ class SsmConfig:
                     parameter_name = parameter["Name"]
                 else:
                     parameter_name = parameter["Name"].replace(path, "")
-                parameters[parameter_name] = parameter["Value"]
-                logger.debug("Fetched parameters from AWS SSM.")
+                parameters[parameter_name] = parameter["Value"]            
         except botocore.exceptions.ClientError as err:
             logger.debug("Failed to fetch parameters. Invalid token")
             return {}
@@ -221,21 +222,22 @@ class SsmConfig:
         return parameters
 
     def fetch_paginated_parameters(self, path):
-        parameters = []
-        fetch_next_page = True
-        api_parameters = {"Path": path, "Recursive": True, "WithDecryption": True}
-        while fetch_next_page:
-            response = self.ssm_client.get_parameters_by_path(**api_parameters)
-
-            if "Parameters" in response:
-                parameters = parameters + response["Parameters"]
-            if "NextToken" in response:
-                api_parameters["NextToken"] = response["NextToken"]
-                fetch_next_page = True
-            else:
-                fetch_next_page = False
-
-        return parameters
+        if not hasattr(self, "fetched_parameters"):
+            self.fetched_parameters = {}
+        if path not in self.fetched_parameters:
+            paginator = self.ssm_client.get_paginator('get_parameters_by_path')
+            parameters = paginator.paginate(
+                Path=path,
+                Recursive=True,
+                WithDecryption=True,    
+            )
+            
+            self.fetched_parameters["path"] = parameters.build_full_result()["Parameters"]
+            
+            for item in self.fetched_parameters["path"]:
+                logger.debug("Found Parameter %s." % item["Name"])
+            logger.debug("Fetched parameters from AWS SSM for path %s." % path)
+        return self.fetched_parameters["path"]
 
     def parameter_name_to_underscore(self, name):
         return name[1 : len(name)].replace("/", "_")

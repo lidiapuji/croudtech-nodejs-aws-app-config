@@ -60,8 +60,14 @@ def cli(ctx, endpoint_url, put_metrics):
     default="json",
     type=click.Choice(["json", "yaml", "environment", "environment-export"]),
 )
+@click.option(
+    "--parse-redis-param/--ignore-redis-param",
+    default=True,
+    is_flag=True,
+    help="Parse redis host and allocate a redis database number"
+)
 def get_parameters(
-    ctx, environment_name, app_name, ssm_prefix, region, include_common, output_format
+    ctx, environment_name, app_name, ssm_prefix, region, include_common, output_format, parse_redis_param
 ):
     ssm_config = SsmConfig(
         environment_name=environment_name,
@@ -72,6 +78,7 @@ def get_parameters(
         click=click,
         endpoint_url=ctx.obj["AWS_ENDPOINT_URL"],
         put_metrics=ctx.obj["PUT_METRICS"],
+        parse_redis=parse_redis_param
     )
     output = "Invalid output format"
 
