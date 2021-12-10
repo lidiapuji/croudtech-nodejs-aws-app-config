@@ -221,6 +221,7 @@ def put_parameters_recursive(ctx, ssm_prefix, region, delete_first, values_path)
 
 @cli.group()
 def manage_redis():
+    """Redis DB Allocation Management"""
     pass
 
 @manage_redis.command()
@@ -236,6 +237,7 @@ def manage_redis():
     help="Include shared variables",
 )
 def show_db(ctx, environment_name, app_name, ssm_prefix, region, include_common):
+    """Show Allocated Redis Database for a specified application"""
     ssm_config = SsmConfig(
         environment_name=environment_name,
         app_name=app_name,
@@ -255,6 +257,7 @@ def show_db(ctx, environment_name, app_name, ssm_prefix, region, include_common)
 @click.option("--redis-host", help="The redis host", required=True)
 @click.option("--redis-port", help="The redis port", required=True, default=6379)
 def show_dbs(ctx, redis_host, redis_port):
+    """Show all allocated Redis databases"""
     redis_config_instance = RedisConfig(
         redis_host=redis_host,
         redis_port=redis_port,
@@ -271,6 +274,7 @@ def show_dbs(ctx, redis_host, redis_port):
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The application name", required=True)
 def allocate_db(ctx, redis_host, redis_port, environment_name, app_name):
+    """Allocate a Redis database for a specified application and environment"""
     redis_config_instance = RedisConfig(
         redis_host=redis_host,
         redis_port=redis_port,
@@ -290,6 +294,7 @@ def allocate_db(ctx, redis_host, redis_port, environment_name, app_name):
 @click.option("--environment-name", help="The environment name", required=True)
 @click.option("--app-name", help="The application name", required=True)
 def deallocate_db(ctx, redis_host, redis_port, environment_name, app_name):
+    """Remove Redis database allocation for the specified application and environment"""
     redis_config_instance = RedisConfig(
         redis_host=redis_host,
         redis_port=redis_port,
