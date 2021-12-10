@@ -141,7 +141,7 @@ Options:
   --help             Show this message and exit.
 ```
 
-## manage-redis
+## Managing Redis DB Allocation
 
 Manage redis DB allocation
 
