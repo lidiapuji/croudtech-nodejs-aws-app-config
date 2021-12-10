@@ -45,12 +45,14 @@ class RedisConfig:
     def db_key(self):
         return "%s_%s" % (self._environment, self._app_name)
 
-    def get_redis_database(self):
+    def get_redis_database(self, allocate=False):
         allocated_dbs = self.redis_db_allocations
-        if self.db_key not in allocated_dbs:
+        if self.db_key not in allocated_dbs and allocate:
             allocated_db = self.allocate_db()
-        else:
+        elif self.db_key in allocated_dbs:
             allocated_db = allocated_dbs[self.db_key]
+        else:
+            allocated_db = None
         if self.put_metrics:
             self.metrics.put_redis_db_metric(
                 app_key=self.db_key,
@@ -68,6 +70,17 @@ class RedisConfig:
         self._redis_config.set(self._allocated_dbs_key, json.dumps(db_config))
 
         return db
+
+    def deallocate_db(self):
+        unused_dbs = self.get_unused_dbs()        
+        db_config = self.redis_db_allocations
+        if self.db_key in db_config:
+            db = db_config[self.db_key]
+            del(db_config[self.db_key])
+            self._redis_config.set(self._allocated_dbs_key, json.dumps(db_config))
+
+            return True, db
+        return False, None
 
     def get_redis_allocated_db(self, db):
         if db not in self._redis_dbs:

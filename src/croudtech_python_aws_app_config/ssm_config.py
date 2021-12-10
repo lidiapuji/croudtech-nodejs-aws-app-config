@@ -95,20 +95,37 @@ class SsmConfig:
             parameters = {}
 
         parameters = {**parameters, **self.fetch_parameters(self.ssm_path)}
-        try:
-            parameters = self.parse_parameters(parameters)
-        except:
-            pass
+        parameters = self.parse_parameters(parameters)
         return parameters
 
     def parse_parameters(self, parameters):
-        if self.parse_redis and ("/REDIS_DB" not in parameters or parameters["/REDIS_DB"] == "auto"):
+        if self.parse_redis:
+            redis_db, redis_host, redis_port = self.find_redis_config(parameters, allocate=True)
+            if redis_db:
+                parameters["/REDIS_DB"] = redis_db
+                parameters["/REDIS_URL"] = "redis://%s:%s/%s" % (
+                    redis_host,
+                    redis_port,
+                    redis_db,
+                )
+            else:
+                raise Exception("Couldn't allocate Redis Database")
+        return parameters
+    
+    def get_redis_db(self):
+        parameters = self.get_parameters()
+        redis_db, redis_host, redis_port = self.find_redis_config(parameters)
+        return redis_db, redis_host, redis_port
+
+    def find_redis_config(self, parameters, allocate=False):
+        if "/REDIS_DB" not in parameters or parameters["/REDIS_DB"] == "auto":
             redis_host = (
                 parameters["/REDIS_HOST"] if "/REDIS_HOST" in parameters else False
             )
             redis_port = (
                 parameters["/REDIS_PORT"] if "/REDIS_PORT" in parameters else 6379
             )
+
             if redis_host:
                 redis_config_instance = RedisConfig(
                     redis_host=redis_host,
@@ -117,15 +134,10 @@ class SsmConfig:
                     environment=self.environment_name,
                     put_metrics=self.put_metrics,
                 )
-                redis_db = redis_config_instance.get_redis_database()
-                parameters["/REDIS_DB"] = redis_db
-                parameters["/REDIS_URL"] = "redis://%s:%s/%s" % (
-                    redis_host,
-                    redis_port,
-                    redis_db,
-                )
-        return parameters
-
+                redis_db = redis_config_instance.get_redis_database(allocate)
+                return redis_db, redis_host, redis_port
+        return None, None, None
+    
     @property
     def current_parameters(self):
         if not hasattr(self, "_current_parameters"):
