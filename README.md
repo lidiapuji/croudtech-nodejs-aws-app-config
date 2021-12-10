@@ -141,6 +141,72 @@ Options:
   --help             Show this message and exit.
 ```
 
+## manage-redis
+
+Manage redis DB allocation
+
+### Sub commands
+
+#### allocate-db
+
+```
+Usage: python -m croudtech_python_aws_app_config.cli manage-redis allocate-db
+           [OPTIONS]
+
+  Allocate a Redis database for a specified application and environment
+
+Options:
+  --redis-host TEXT        The redis host  [required]
+  --redis-port INTEGER     The redis port  [required]
+  --environment-name TEXT  The environment name  [required]
+  --app-name TEXT          The application name  [required]
+  --help                   Show this message and exit.
+```
+
+#### deallocate-db
+```
+Usage: python -m croudtech_python_aws_app_config.cli manage-redis deallocate-db
+           [OPTIONS]
+
+  Remove Redis database allocation for the specified application and
+  environment
+
+Options:
+  --redis-host TEXT        The redis host  [required]
+  --redis-port INTEGER     The redis port  [required]
+  --environment-name TEXT  The environment name  [required]
+  --app-name TEXT          The application name  [required]
+  --help                   Show this message and exit.
+```
+#### show-db
+```
+Usage: python -m croudtech_python_aws_app_config.cli manage-redis show-db
+           [OPTIONS]
+
+  Show Allocated Redis Database for a specified application
+
+Options:
+  --environment-name TEXT         The environment name  [required]
+  --app-name TEXT                 The app name  [required]
+  --ssm-prefix TEXT               The ssm path prefix
+  --region TEXT                   The AWS region
+  --include-common / --ignore-common
+                                  Include shared variables
+  --help                          Show this message and exit.
+```
+#### show-dbs
+```
+Usage: python -m croudtech_python_aws_app_config.cli manage-redis show-dbs
+           [OPTIONS]
+
+  Show all allocated Redis databases
+
+Options:
+  --redis-host TEXT     The redis host  [required]
+  --redis-port INTEGER  The redis port  [required]
+  --help                Show this message and exit.
+```
+
 ## Nested file structure and environment variables
 
 Nested values will have their keys flattened when being converted to environment variables. This allows for a simpler structure than just adding all your env vars separately.
