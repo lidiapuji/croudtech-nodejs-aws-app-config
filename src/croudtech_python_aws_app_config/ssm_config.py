@@ -216,6 +216,21 @@ class SsmConfig:
             parsed_value = value
         return str(parsed_value).strip()
 
+    def parse_fetched_parameter(self, parameter):
+        value = parameter['Value']
+        if value.startswith('ssm:'):
+            valueParameterName = value.replace('ssm:', '')
+            encrypted = False
+            if valueParameterName.startswith('encrypted:'):
+                valueParameterName = valueParameterName.replace('encrypted:')
+                encrypted = True
+            parameterresponse = self.ssm_client.get_parameter(
+                Name = valueParameterName,
+                WithDecryption = encrypted
+            )
+            value = parameterresponse['Parameter']['Value']
+        return value
+
     def fetch_parameters(self, path, absolute_path=False):
         try:
             parameters = {}
@@ -224,7 +239,8 @@ class SsmConfig:
                     parameter_name = parameter["Name"]
                 else:
                     parameter_name = parameter["Name"].replace(path, "")
-                parameters[parameter_name] = parameter["Value"]            
+                parameter_value = self.parse_fetched_parameter(parameter)
+                parameters[parameter_name] = parameter_value  
         except botocore.exceptions.ClientError as err:
             logger.debug("Failed to fetch parameters. Invalid token")
             return {}
