@@ -17,6 +17,7 @@ pyyaml = "*"
 loguru = "*"
 http-status-codes = "*"
 redis = "*"
+requests = "*"
 
 [requires]
 python_version = "3.8"
