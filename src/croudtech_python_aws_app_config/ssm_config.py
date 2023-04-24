@@ -349,6 +349,7 @@ class SsmConfig:
 
         flattened = convert_flatten(data, sep="/", parent_key=self.ssm_path)
         if delete_first:
+            self.parse_redis = False
             self.delete_existing()
 
         for key, value in flattened.items():
